@@ -1,4 +1,4 @@
-FROM runpod/pytorch:2.1.0-py3.10-cuda12.1.0-devel-ubuntu22.04
+FROM runpod/pytorch:1.0.3-cu1290-torch291-ubuntu2204
 
 RUN pip install --no-cache-dir vllm==0.16.0 runpod==1.6.2 pillow requests
 
