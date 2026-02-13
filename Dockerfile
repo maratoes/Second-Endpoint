@@ -1,0 +1,15 @@
+FROM runpod/pytorch:2.1.0-py3.10-cuda12.1.0-devel-ubuntu22.04
+
+RUN pip install --no-cache-dir vllm==0.16.0 runpod==1.6.2 pillow requests
+
+WORKDIR /app
+COPY handler.py .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV MODEL_NAME="Qwen/Qwen3-VL-8B-Instruct"
+ENV MAX_MODEL_LEN=4096
+ENV TRUST_REMOTE_CODE=True
+ENV GPU_MEMORY_UTILIZATION=0.9
+
+CMD ["python", "-u", "handler.py"]
