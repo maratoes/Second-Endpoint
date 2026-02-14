@@ -65,6 +65,9 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         # Offline vLLM multimodal path: provide a prompt with <image> placeholders and
         # attach the decoded PIL.Image via multi_modal_data.
         image = Image.open(BytesIO(base64.b64decode(image_b64)))
+        # Force full decode early; avoid downstream "broken data stream" errors.
+        image.load()
+        image = image.convert("RGB")
         prompt = f"USER: <image>\n{user_prompt}\nASSISTANT:"
 
         sampling = SamplingParams(
