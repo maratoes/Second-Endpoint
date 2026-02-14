@@ -1,7 +1,10 @@
+import base64
 import os
+from io import BytesIO
 from typing import Any, Dict
 
 import runpod
+from PIL import Image
 from vllm import LLM, SamplingParams
 
 model = None
@@ -39,6 +42,8 @@ def initialize_model() -> LLM:
         trust_remote_code=True,
         max_model_len=int(os.getenv("MAX_MODEL_LEN", "4096")),
         gpu_memory_utilization=float(os.getenv("GPU_MEMORY_UTILIZATION", "0.9")),
+        # vLLM offline multimodal needs a per-request image limit configured up-front.
+        limit_mm_per_prompt={"image": 1},
     )
     return model
 
@@ -52,29 +57,25 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
                 return {"error": f"model_init_failed: {exc}", "status": "error"}
 
         data = job.get("input", {})
-        prompt = data.get("prompt", "Describe this image")
+        user_prompt = data.get("prompt", "Describe this image")
         image_b64 = data.get("image", "")
         if not image_b64:
             return {"error": "image is required", "status": "error"}
 
-        # vLLM's chat multimodal expects OpenAI-style "image_url" parts, not PIL.Image.
-        image_url = f"data:image/png;base64,{image_b64}"
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": image_url}},
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ]
+        # Offline vLLM multimodal path: provide a prompt with <image> placeholders and
+        # attach the decoded PIL.Image via multi_modal_data.
+        image = Image.open(BytesIO(base64.b64decode(image_b64)))
+        prompt = f"USER: <image>\n{user_prompt}\nASSISTANT:"
 
         sampling = SamplingParams(
             max_tokens=data.get("max_tokens", 256),
             temperature=data.get("temperature", 0.7),
             top_p=data.get("top_p", 0.95),
         )
-        outputs = model.chat(messages, sampling)
+        outputs = model.generate(
+            [{"prompt": prompt, "multi_modal_data": {"image": image}}],
+            sampling,
+        )
         return {"output": outputs[0].outputs[0].text, "status": "success"}
     except Exception as exc:
         return {"error": str(exc), "status": "error"}
