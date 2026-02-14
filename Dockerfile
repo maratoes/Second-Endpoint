@@ -6,6 +6,7 @@ WORKDIR /app
 COPY handler.py .
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+COPY scripts ./scripts
 
 ENV MODEL_NAME="Qwen/Qwen3-VL-8B-Instruct"
 ENV MAX_MODEL_LEN=4096

@@ -2,3 +2,4 @@ vllm==0.15.1
 runpod==1.7.0
 pillow
 requests
+huggingface-hub
