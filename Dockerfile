@@ -1,6 +1,6 @@
 FROM runpod/pytorch:1.0.3-cu1290-torch291-ubuntu2204
 
-RUN pip install --no-cache-dir vllm==0.16.0 runpod==1.6.2 pillow requests
+RUN pip install --no-cache-dir vllm==0.15.1 runpod==1.6.2 pillow requests
 
 WORKDIR /app
 COPY handler.py .
