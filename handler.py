@@ -1,10 +1,7 @@
-import base64
 import os
-from io import BytesIO
 from typing import Any, Dict
 
 import runpod
-from PIL import Image
 from vllm import LLM, SamplingParams
 
 model = None
@@ -57,16 +54,20 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         data = job.get("input", {})
         prompt = data.get("prompt", "Describe this image")
         image_b64 = data.get("image", "")
-        image_data = base64.b64decode(image_b64)
-        image = Image.open(BytesIO(image_data))
+        if not image_b64:
+            return {"error": "image is required", "status": "error"}
 
-        messages = [{
-            "role": "user",
-            "content": [
-                {"type": "image", "image": image},
-                {"type": "text", "text": prompt},
-            ],
-        }]
+        # vLLM's chat multimodal expects OpenAI-style "image_url" parts, not PIL.Image.
+        image_url = f"data:image/png;base64,{image_b64}"
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": image_url}},
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ]
 
         sampling = SamplingParams(
             max_tokens=data.get("max_tokens", 256),
